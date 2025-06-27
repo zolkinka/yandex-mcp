@@ -1,0 +1,10 @@
+{
+  "servers": {
+    "mcp-yandex-tracker": {
+      "url": "http://localhost:3000/sse",
+      "headers": {
+        "Accept": "text/event-stream"
+      }
+    }
+  }
+}

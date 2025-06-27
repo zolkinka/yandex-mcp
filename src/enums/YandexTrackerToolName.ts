@@ -1,0 +1,16 @@
+export enum YandexTrackerToolName {
+  getIssue = "getIssueTool",
+  getMySelf = "getMySelfTool",
+  getQueues = "getQueuesTool",
+  getUser = "getUserTool",
+  searchIssueByFilter = "searchIssueByFilterTool",
+  searchIssueByQuery = "searchIssueByQueryTool",
+  getIssueTypes = "getIssueTypesTool",
+  getIssuePriorityTypes = "getIssuePriorityTypesTool",
+  getIssueStatusTypes = "getIssueStatusTypesTool",
+  getIssueFields = "getIssueFieldsTool",
+  getQueueFields = "getQueueFieldsTool",
+  getUserFields = "getUserFieldsTool",
+  getUsers = "getTrackerUsersTool",
+  getYandexQueryDoc = "getYandexQueryDocTool",
+}
