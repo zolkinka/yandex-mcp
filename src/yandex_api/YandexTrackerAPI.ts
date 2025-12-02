@@ -26,12 +26,18 @@ export class YandexTrackerAPI {
 
   /**
    * инициализация клиента для яндекс трекера
+   * Поддерживает как X-Org-Id (Yandex 360), так и X-Cloud-Org-Id (Yandex Cloud)
    */
   private constructor() {
+    // Если указан YANDEX_TRACKER_ORG_ID - используем X-Org-Id (для Yandex 360)
+    // Если указан YANDEX_TRACKER_CLOUD_ORG_ID - используем X-Cloud-Org-Id (для Yandex Cloud)
+    const orgId = config.YANDEX_TRACKER_ORG_ID;
+    const cloudOrgId = config.YANDEX_TRACKER_CLOUD_ORG_ID;
+    
     this.client = new Tracker(
       config.YANDEX_TRACKER_TOKEN,
-      undefined,
-      config.YANDEX_TRACKER_CLOUD_ORG_ID,
+      orgId,           // X-Org-Id для Yandex 360
+      cloudOrgId,      // X-Cloud-Org-Id для Yandex Cloud
       config.YANDEX_TRACKER_BASE_URL,
       config.REQUEST_TIMEOUT
     );

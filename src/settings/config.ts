@@ -5,7 +5,8 @@ dotenv.config();
 
 const envSchema = z.object({
   YANDEX_TRACKER_TOKEN: z.string(),
-  YANDEX_TRACKER_CLOUD_ORG_ID: z.string(),
+  YANDEX_TRACKER_ORG_ID: z.string().optional(),
+  YANDEX_TRACKER_CLOUD_ORG_ID: z.string().optional(),
   YANDEX_TRACKER_BASE_URL: z.string().url(),
   MCP_SERVER_BASE_URL: z.string().url(),
   LOG_LEVEL: z

@@ -1,5 +1,6 @@
 import { McpServer } from "@modelcontextprotocol/sdk/server/mcp.js";
 import { SSEServerTransport } from "@modelcontextprotocol/sdk/server/sse.js";
+import { StdioServerTransport } from "@modelcontextprotocol/sdk/server/stdio.js";
 import { CallToolResult, GetPromptResult } from "@modelcontextprotocol/sdk/types";
 import { Response, Request } from "express";
 
@@ -33,7 +34,12 @@ export abstract class YandexMcpServer {
   protected abstract addResources(): void;
   protected abstract addPrompts(): void;
 
-  // подключение Mcp сервера
+  // подключение через stdio транспорт (для запуска из VS Code)
+  public async connectStdio(transport: StdioServerTransport): Promise<void> {
+    await this.mcpServer.connect(transport);
+  }
+
+  // подключение Mcp сервера через SSE
   public async connect(
     endpoint: string,
     response: Response
