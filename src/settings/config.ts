@@ -1,7 +1,10 @@
 import { z } from "zod";
 import dotenv from "dotenv";
+import path from "path";
 
-dotenv.config();
+// Загружаем .env из директории проекта (для stdio режима)
+const projectRoot = path.resolve(__dirname, "../..");
+dotenv.config({ path: path.join(projectRoot, ".env") });
 
 const envSchema = z.object({
   YANDEX_TRACKER_TOKEN: z.string(),

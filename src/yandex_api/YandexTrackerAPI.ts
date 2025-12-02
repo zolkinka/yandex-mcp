@@ -77,7 +77,18 @@ export class YandexTrackerAPI {
       logger.info({ status: response.status, path, data }, "POST");
       return response;
     } catch (error) {
-      logger.error({ status: response.status, path, data, error }, "POST");
+      logger.error({ path, data, error }, "POST");
+      throw error;
+    }
+  }
+
+  public async patch(path: string, data?: Record<string, any>): Promise<any> {
+    try {
+      const response = await this.client.patch(path, data);
+      logger.info({ path, data }, "PATCH");
+      return response;
+    } catch (error) {
+      logger.error({ path, data, error }, "PATCH");
       throw error;
     }
   }
@@ -326,23 +337,263 @@ export class YandexTrackerAPI {
     return statusSchema.array().parse(response);
   }
 
-  async createIssue(): Promise<any> {
-    // TODO: Создание новой задачи
+  /**
+   * Создание новой задачи
+   * API: POST /v3/issues/
+   *
+   * @param {CreateIssueParams} params - Параметры создания задачи
+   * @return {*}  {Promise<Issue>} - Созданная задача
+   * @memberof YandexTrackerAPI
+   */
+  async createIssue(params: {
+    queue: string;
+    summary: string;
+    description?: string;
+    type?: string;
+    priority?: string;
+    assignee?: string;
+    parent?: string;
+    followers?: string[];
+    tags?: string[];
+    sprint?: string[];
+  }): Promise<Issue> {
+    try {
+      const body: Record<string, any> = {
+        queue: params.queue,
+        summary: params.summary,
+      };
+
+      if (params.description) body.description = params.description;
+      if (params.type) body.type = params.type;
+      if (params.priority) body.priority = params.priority;
+      if (params.assignee) body.assignee = params.assignee;
+      if (params.parent) body.parent = params.parent;
+      if (params.followers) body.followers = params.followers;
+      if (params.tags) body.tags = params.tags;
+      if (params.sprint) body.sprint = params.sprint.map(id => ({ id }));
+
+      const response = await this.post("issues", body);
+      return issueSchema.parse(response);
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async updateIssue(): Promise<void> {
-    // TODO: Обновление существующей задачи
+  /**
+   * Редактирование существующей задачи
+   * API: PATCH /v3/issues/<issue_key>
+   *
+   * @param {string} issueKey - Ключ задачи (например: TEST-123)
+   * @param {UpdateIssueParams} params - Параметры для обновления
+   * @return {*}  {Promise<Issue>} - Обновленная задача
+   * @memberof YandexTrackerAPI
+   */
+  async updateIssue(
+    issueKey: string,
+    params: {
+      summary?: string;
+      description?: string;
+      type?: string;
+      priority?: string;
+      assignee?: string | null;
+      parent?: string;
+      followers?: { add?: string[]; remove?: string[] };
+      tags?: { add?: string[]; remove?: string[] } | string[];
+      sprint?: { id: string }[];
+    }
+  ): Promise<Issue> {
+    try {
+      const body: Record<string, any> = {};
+
+      if (params.summary !== undefined) body.summary = params.summary;
+      if (params.description !== undefined) body.description = params.description;
+      if (params.type !== undefined) body.type = params.type;
+      if (params.priority !== undefined) body.priority = params.priority;
+      if (params.assignee !== undefined) body.assignee = params.assignee;
+      if (params.parent !== undefined) body.parent = { key: params.parent };
+      if (params.followers !== undefined) body.followers = params.followers;
+      if (params.tags !== undefined) body.tags = params.tags;
+      if (params.sprint !== undefined) body.sprint = params.sprint;
+
+      const response = await this.patch(`issues/${issueKey}`, body);
+      return issueSchema.parse(response);
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async transitionIssue(): Promise<void> {
-    // TODO: Изменение статуса задачи
+  /**
+   * Получение доступных переходов для задачи
+   * API: GET /v2/issues/<issue_key>/transitions
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @return {*}  {Promise<any[]>} - Список доступных переходов
+   * @memberof YandexTrackerAPI
+   */
+  async getTransitions(issueKey: string): Promise<any[]> {
+    try {
+      const response = await this.get(`issues/${issueKey}/transitions`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async addComment(): Promise<void> {
-    // TODO: Добавление комментария к задаче
+  /**
+   * Выполнить переход задачи в другой статус
+   * API: POST /v2/issues/<issue_key>/transitions/<transition_id>/_execute
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @param {string} transitionId - ID перехода
+   * @param {string} [comment] - Комментарий к переходу
+   * @return {*}  {Promise<any>} - Результат перехода
+   * @memberof YandexTrackerAPI
+   */
+  async transitionIssue(
+    issueKey: string,
+    transitionId: string,
+    comment?: string
+  ): Promise<any> {
+    try {
+      const body: Record<string, any> = {};
+      if (comment) body.comment = comment;
+
+      const response = await this.post(
+        `issues/${issueKey}/transitions/${transitionId}/_execute`,
+        body
+      );
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 
-  async getComments(): Promise<void> {
-    // TODO: Получение комментариев задачи
+  /**
+   * Добавление комментария к задаче
+   * API: POST /v2/issues/<issue_key>/comments
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @param {string} text - Текст комментария
+   * @param {string[]} [summonees] - Список логинов для призыва
+   * @return {*}  {Promise<any>} - Созданный комментарий
+   * @memberof YandexTrackerAPI
+   */
+  async addComment(
+    issueKey: string,
+    text: string,
+    summonees?: string[]
+  ): Promise<any> {
+    try {
+      const body: Record<string, any> = { text };
+      if (summonees) body.summonees = summonees;
+
+      const response = await this.post(`issues/${issueKey}/comments`, body);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Получение комментариев задачи
+   * API: GET /v2/issues/<issue_key>/comments
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @param {number} [perPage=50] - Количество комментариев на странице
+   * @return {*}  {Promise<any[]>} - Список комментариев
+   * @memberof YandexTrackerAPI
+   */
+  async getComments(issueKey: string, perPage: number = 50): Promise<any[]> {
+    try {
+      const response = await this.get(`issues/${issueKey}/comments`, {
+        perPage,
+      });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * HTTP DELETE запрос
+   */
+  public async delete(path: string): Promise<any> {
+    try {
+      const response = await this.client.delete(path);
+      logger.info({ path }, "DELETE");
+      return response;
+    } catch (error) {
+      logger.error({ path, error }, "DELETE");
+      throw error;
+    }
+  }
+
+  /**
+   * Создание связи между задачами
+   * API: POST /v3/issues/<issue_key>/links
+   *
+   * @param {string} issueKey - Ключ задачи, к которой добавляется связь
+   * @param {string} relationship - Тип связи:
+   *   - "relates" - связана с
+   *   - "depends on" - зависит от (блокер)
+   *   - "is dependent by" - является блокером для
+   *   - "duplicates" - дублирует
+   *   - "is duplicated by" - дублируется
+   *   - "is subtask for" - подзадача для
+   *   - "is parent task for" - родительская задача для
+   * @param {string} linkedIssue - Ключ связываемой задачи
+   * @return {*}  {Promise<any>} - Созданная связь
+   * @memberof YandexTrackerAPI
+   */
+  async linkIssue(
+    issueKey: string,
+    relationship: string,
+    linkedIssue: string
+  ): Promise<any> {
+    try {
+      const body = {
+        relationship: relationship,
+        issue: linkedIssue,
+      };
+      const response = await this.post(`issues/${issueKey}/links`, body);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Получение связей задачи
+   * API: GET /v2/issues/<issue_key>/links
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @return {*}  {Promise<any[]>} - Список связей
+   * @memberof YandexTrackerAPI
+   */
+  async getLinks(issueKey: string): Promise<any[]> {
+    try {
+      const response = await this.get(`issues/${issueKey}/links`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Удаление связи задачи
+   * API: DELETE /v2/issues/<issue_key>/links/<link_id>
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @param {string} linkId - ID связи
+   * @return {*}  {Promise<any>} - Результат удаления
+   * @memberof YandexTrackerAPI
+   */
+  async deleteLink(issueKey: string, linkId: string): Promise<any> {
+    try {
+      const response = await this.delete(`issues/${issueKey}/links/${linkId}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
   }
 }

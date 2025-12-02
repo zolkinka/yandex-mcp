@@ -13,4 +13,15 @@ export enum YandexTrackerToolName {
   getUserFields = "getUserFieldsTool",
   getUsers = "getTrackerUsersTool",
   getYandexQueryDoc = "getYandexQueryDocTool",
+  // Новые инструменты для создания/редактирования
+  createIssue = "createIssueTool",
+  updateIssue = "updateIssueTool",
+  addComment = "addCommentTool",
+  getComments = "getCommentsTool",
+  getTransitions = "getTransitionsTool",
+  transitionIssue = "transitionIssueTool",
+  // Инструменты для работы со связями задач
+  linkIssue = "linkIssueTool",
+  getLinks = "getLinksTool",
+  deleteLink = "deleteLinkTool",
 }

@@ -4,7 +4,22 @@ import { z } from "zod";
 import { YandexTrackerAPI } from "../yandex_api/YandexTrackerAPI";
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol";
 import { CallToolResult, GetPromptResult, ReadResourceResult, ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types";
-import { getIssueParamsSchema, getQueuesParamsSchema, getUserParamsSchema, searchIssueByFilterParamsSchema, searchIssueByQueryParamsShema } from "../models/paramShemas";
+import { 
+  getIssueParamsSchema, 
+  getQueuesParamsSchema, 
+  getUserParamsSchema, 
+  searchIssueByFilterParamsSchema, 
+  searchIssueByQueryParamsShema,
+  createIssueParamsSchema,
+  updateIssueParamsSchema,
+  addCommentParamsSchema,
+  getCommentsParamsSchema,
+  transitionIssueParamsSchema,
+  getTransitionsParamsSchema,
+  linkIssueParamsSchema,
+  getLinksParamsSchema,
+  deleteLinkParamsSchema
+} from "../models/paramShemas";
 import { Issue } from "../models/issue";
 import { SimpleUser, User } from "../models/user";
 import { Queue } from "../models/queue";
@@ -204,6 +219,78 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       "Получает ползователя по id или login",
       getUserParamsSchema.shape,
       this.getUserToolCallback.bind(this)
+    );
+
+    // createIssueTool - создание новой задачи
+    this.mcpServer.tool(
+      YandexTrackerToolName.createIssue,
+      "Создает новую задачу в Yandex Tracker. Обязательные поля: queue (ключ очереди) и summary (название).",
+      createIssueParamsSchema.shape,
+      this.createIssueToolCallback.bind(this)
+    );
+
+    // updateIssueTool - редактирование задачи
+    this.mcpServer.tool(
+      YandexTrackerToolName.updateIssue,
+      "Редактирует существующую задачу в Yandex Tracker. Можно изменить название, описание, приоритет, исполнителя, теги и т.д.",
+      updateIssueParamsSchema.shape,
+      this.updateIssueToolCallback.bind(this)
+    );
+
+    // addCommentTool - добавление комментария
+    this.mcpServer.tool(
+      YandexTrackerToolName.addComment,
+      "Добавляет комментарий к задаче. Можно призвать пользователей через summonees.",
+      addCommentParamsSchema.shape,
+      this.addCommentToolCallback.bind(this)
+    );
+
+    // getCommentsTool - получение комментариев
+    this.mcpServer.tool(
+      YandexTrackerToolName.getComments,
+      "Получает список комментариев к задаче.",
+      getCommentsParamsSchema.shape,
+      this.getCommentsToolCallback.bind(this)
+    );
+
+    // getTransitionsTool - получение переходов
+    this.mcpServer.tool(
+      YandexTrackerToolName.getTransitions,
+      "Получает список доступных переходов (смен статуса) для задачи.",
+      getTransitionsParamsSchema.shape,
+      this.getTransitionsToolCallback.bind(this)
+    );
+
+    // transitionIssueTool - выполнение перехода
+    this.mcpServer.tool(
+      YandexTrackerToolName.transitionIssue,
+      "Выполняет переход задачи в другой статус. Сначала используйте getTransitions для получения доступных переходов.",
+      transitionIssueParamsSchema.shape,
+      this.transitionIssueToolCallback.bind(this)
+    );
+
+    // linkIssueTool - создание связи между задачами
+    this.mcpServer.tool(
+      YandexTrackerToolName.linkIssue,
+      "Создает связь между задачами. Типы связей: 'relates' (связана), 'depends on' (зависит от/блокер), 'is dependent by' (блокирует), 'duplicates' (дублирует), 'is subtask for' (подзадача), 'is parent task for' (родительская).",
+      linkIssueParamsSchema.shape,
+      this.linkIssueToolCallback.bind(this)
+    );
+
+    // getLinksTool - получение связей задачи
+    this.mcpServer.tool(
+      YandexTrackerToolName.getLinks,
+      "Получает список всех связей задачи (блокеры, связанные задачи, дубликаты и т.д.).",
+      getLinksParamsSchema.shape,
+      this.getLinksToolCallback.bind(this)
+    );
+
+    // deleteLinkTool - удаление связи
+    this.mcpServer.tool(
+      YandexTrackerToolName.deleteLink,
+      "Удаляет связь между задачами. Сначала используйте getLinks для получения ID связи.",
+      deleteLinkParamsSchema.shape,
+      this.deleteLinkToolCallback.bind(this)
     );
   }
 
@@ -488,6 +575,182 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
         countOfIssues: issueArray.length
       }
       return super.receiveCallToolResult<object>(responseData);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для создания задачи
+  private async createIssueToolCallback(
+    args: z.infer<typeof createIssueParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const issue: Issue = await YandexTrackerAPI.getInstance().createIssue({
+        queue: args.queue,
+        summary: args.summary,
+        description: args.description,
+        type: args.type,
+        priority: args.priority,
+        assignee: args.assignee,
+        parent: args.parent,
+        followers: args.followers,
+        tags: args.tags,
+        sprint: args.sprint,
+      });
+      return super.receiveCallToolResult<Issue>(issue);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для редактирования задачи
+  private async updateIssueToolCallback(
+    args: z.infer<typeof updateIssueParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const updateParams: any = {};
+      
+      if (args.summary !== undefined) updateParams.summary = args.summary;
+      if (args.description !== undefined) updateParams.description = args.description;
+      if (args.type !== undefined) updateParams.type = args.type;
+      if (args.priority !== undefined) updateParams.priority = args.priority;
+      if (args.assignee !== undefined) updateParams.assignee = args.assignee;
+      if (args.parent !== undefined) updateParams.parent = args.parent;
+      
+      // Обработка тегов
+      if (args.addTags || args.removeTags) {
+        updateParams.tags = {};
+        if (args.addTags) updateParams.tags.add = args.addTags;
+        if (args.removeTags) updateParams.tags.remove = args.removeTags;
+      }
+      
+      // Обработка наблюдателей
+      if (args.addFollowers || args.removeFollowers) {
+        updateParams.followers = {};
+        if (args.addFollowers) updateParams.followers.add = args.addFollowers;
+        if (args.removeFollowers) updateParams.followers.remove = args.removeFollowers;
+      }
+
+      const issue: Issue = await YandexTrackerAPI.getInstance().updateIssue(
+        args.issueKey,
+        updateParams
+      );
+      return super.receiveCallToolResult<Issue>(issue);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для добавления комментария
+  private async addCommentToolCallback(
+    args: z.infer<typeof addCommentParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const comment = await YandexTrackerAPI.getInstance().addComment(
+        args.issueKey,
+        args.text,
+        args.summonees
+      );
+      return super.receiveCallToolResult<any>(comment);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для получения комментариев
+  private async getCommentsToolCallback(
+    args: z.infer<typeof getCommentsParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const comments = await YandexTrackerAPI.getInstance().getComments(
+        args.issueKey,
+        args.perPage
+      );
+      return super.receiveCallToolResult<any[]>(comments);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для получения доступных переходов
+  private async getTransitionsToolCallback(
+    args: z.infer<typeof getTransitionsParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const transitions = await YandexTrackerAPI.getInstance().getTransitions(
+        args.issueKey
+      );
+      return super.receiveCallToolResult<any[]>(transitions);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для выполнения перехода в статус
+  private async transitionIssueToolCallback(
+    args: z.infer<typeof transitionIssueParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexTrackerAPI.getInstance().transitionIssue(
+        args.issueKey,
+        args.transitionId,
+        args.comment
+      );
+      return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для создания связи между задачами
+  private async linkIssueToolCallback(
+    args: z.infer<typeof linkIssueParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexTrackerAPI.getInstance().linkIssue(
+        args.issueKey,
+        args.relationship,
+        args.linkedIssue
+      );
+      return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для получения связей задачи
+  private async getLinksToolCallback(
+    args: z.infer<typeof getLinksParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const links = await YandexTrackerAPI.getInstance().getLinks(
+        args.issueKey
+      );
+      return super.receiveCallToolResult<any[]>(links);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для удаления связи
+  private async deleteLinkToolCallback(
+    args: z.infer<typeof deleteLinkParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexTrackerAPI.getInstance().deleteLink(
+        args.issueKey,
+        args.linkId
+      );
+      return super.receiveCallToolResult<any>(result);
     } catch (error) {
       throw error;
     }
