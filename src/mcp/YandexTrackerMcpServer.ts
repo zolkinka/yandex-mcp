@@ -1,7 +1,9 @@
 import { YandexMcpServer } from "./YandexMcpServer";
 import { YandexTrackerToolName } from "../enums/YandexTrackerToolName";
+import { YandexWikiToolName } from "../enums/YandexWikiToolName";
 import { z } from "zod";
 import { YandexTrackerAPI } from "../yandex_api/YandexTrackerAPI";
+import { YandexWikiAPI } from "../yandex_api/YandexWikiAPI";
 import { RequestHandlerExtra } from "@modelcontextprotocol/sdk/shared/protocol";
 import { CallToolResult, GetPromptResult, ReadResourceResult, ServerNotification, ServerRequest } from "@modelcontextprotocol/sdk/types";
 import { 
@@ -20,6 +22,14 @@ import {
   getLinksParamsSchema,
   deleteLinkParamsSchema
 } from "../models/paramShemas";
+import {
+  getWikiPageParamsSchema,
+  getWikiPageByIdParamsSchema,
+  createWikiPageParamsSchema,
+  updateWikiPageParamsSchema,
+  deleteWikiPageParamsSchema,
+  appendWikiContentParamsSchema
+} from "../models/wikiParamSchemas";
 import { Issue } from "../models/issue";
 import { SimpleUser, User } from "../models/user";
 import { Queue } from "../models/queue";
@@ -291,6 +301,56 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       "Удаляет связь между задачами. Сначала используйте getLinks для получения ID связи.",
       deleteLinkParamsSchema.shape,
       this.deleteLinkToolCallback.bind(this)
+    );
+
+    // ==================== ЯНДЕКС ВИКИ ====================
+
+    // getWikiPageTool - получение страницы по slug
+    this.mcpServer.tool(
+      YandexWikiToolName.getWikiPage,
+      "Получает страницу Яндекс Вики по её пути (slug). Можно запросить дополнительные поля: content, attributes, breadcrumbs.",
+      getWikiPageParamsSchema.shape,
+      this.getWikiPageToolCallback.bind(this)
+    );
+
+    // getWikiPageByIdTool - получение страницы по ID
+    this.mcpServer.tool(
+      YandexWikiToolName.getWikiPageById,
+      "Получает страницу Яндекс Вики по её ID.",
+      getWikiPageByIdParamsSchema.shape,
+      this.getWikiPageByIdToolCallback.bind(this)
+    );
+
+    // createWikiPageTool - создание страницы
+    this.mcpServer.tool(
+      YandexWikiToolName.createWikiPage,
+      "Создает новую страницу в Яндекс Вики. Контент поддерживает Markdown и Wikitext разметку.",
+      createWikiPageParamsSchema.shape,
+      this.createWikiPageToolCallback.bind(this)
+    );
+
+    // updateWikiPageTool - обновление страницы
+    this.mcpServer.tool(
+      YandexWikiToolName.updateWikiPage,
+      "Обновляет существующую страницу Яндекс Вики (заголовок и/или контент).",
+      updateWikiPageParamsSchema.shape,
+      this.updateWikiPageToolCallback.bind(this)
+    );
+
+    // deleteWikiPageTool - удаление страницы
+    this.mcpServer.tool(
+      YandexWikiToolName.deleteWikiPage,
+      "Удаляет страницу Яндекс Вики. Возвращает токен для восстановления.",
+      deleteWikiPageParamsSchema.shape,
+      this.deleteWikiPageToolCallback.bind(this)
+    );
+
+    // appendWikiContentTool - добавление контента
+    this.mcpServer.tool(
+      YandexWikiToolName.appendWikiContent,
+      "Добавляет контент в конец существующей страницы Яндекс Вики.",
+      appendWikiContentParamsSchema.shape,
+      this.appendWikiContentToolCallback.bind(this)
     );
   }
 
@@ -751,6 +811,103 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
         args.linkId
       );
       return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // ==================== ЯНДЕКС ВИКИ CALLBACKS ====================
+
+  // callback для получения страницы по slug
+  private async getWikiPageToolCallback(
+    args: z.infer<typeof getWikiPageParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const page = await YandexWikiAPI.getInstance().getPage(
+        args.slug,
+        args.fields
+      );
+      return super.receiveCallToolResult<any>(page);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для получения страницы по ID
+  private async getWikiPageByIdToolCallback(
+    args: z.infer<typeof getWikiPageByIdParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const page = await YandexWikiAPI.getInstance().getPageById(
+        args.pageId,
+        args.fields
+      );
+      return super.receiveCallToolResult<any>(page);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для создания страницы Wiki
+  private async createWikiPageToolCallback(
+    args: z.infer<typeof createWikiPageParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const page = await YandexWikiAPI.getInstance().createPage({
+        slug: args.slug,
+        title: args.title,
+        page_type: args.page_type,
+        content: args.content,
+      });
+      return super.receiveCallToolResult<any>(page);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для обновления страницы Wiki
+  private async updateWikiPageToolCallback(
+    args: z.infer<typeof updateWikiPageParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const page = await YandexWikiAPI.getInstance().updatePage(args.pageId, {
+        title: args.title,
+        content: args.content,
+      });
+      return super.receiveCallToolResult<any>(page);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для удаления страницы Wiki
+  private async deleteWikiPageToolCallback(
+    args: z.infer<typeof deleteWikiPageParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexWikiAPI.getInstance().deletePage(args.pageId);
+      return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для добавления контента к странице
+  private async appendWikiContentToolCallback(
+    args: z.infer<typeof appendWikiContentParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const page = await YandexWikiAPI.getInstance().appendContent(
+        args.pageId,
+        args.content
+      );
+      return super.receiveCallToolResult<any>(page);
     } catch (error) {
       throw error;
     }
