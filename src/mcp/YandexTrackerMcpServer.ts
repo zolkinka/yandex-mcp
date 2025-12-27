@@ -20,7 +20,8 @@ import {
   getTransitionsParamsSchema,
   linkIssueParamsSchema,
   getLinksParamsSchema,
-  deleteLinkParamsSchema
+  deleteLinkParamsSchema,
+  deleteIssueParamsSchema
 } from "../models/paramShemas";
 import {
   getWikiPageParamsSchema,
@@ -302,7 +303,13 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       deleteLinkParamsSchema.shape,
       this.deleteLinkToolCallback.bind(this)
     );
-
+    // deleteIssueTool - удаление задачи
+    this.mcpServer.tool(
+      YandexTrackerToolName.deleteIssue,
+      "Удаляет задачу из Яндекс.Трекера. ВНИМАНИЕ: Операция необратима! Задача будет удалена безвозвратно.",
+      deleteIssueParamsSchema.shape,
+      this.deleteIssueToolCallback.bind(this)
+    );
     // ==================== ЯНДЕКС ВИКИ ====================
 
     // getWikiPageTool - получение страницы по slug
@@ -809,6 +816,21 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       const result = await YandexTrackerAPI.getInstance().deleteLink(
         args.issueKey,
         args.linkId
+      );
+      return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для удаления задачи
+  private async deleteIssueToolCallback(
+    args: z.infer<typeof deleteIssueParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexTrackerAPI.getInstance().deleteIssue(
+        args.issueKey
       );
       return super.receiveCallToolResult<any>(result);
     } catch (error) {

@@ -596,4 +596,21 @@ export class YandexTrackerAPI {
       throw error;
     }
   }
+
+  /**
+   * Удаление задачи
+   * API: DELETE /v2/issues/<issue_key>
+   *
+   * @param {string} issueKey - Ключ задачи для удаления
+   * @return {*}  {Promise<any>} - Результат удаления
+   * @memberof YandexTrackerAPI
+   */
+  async deleteIssue(issueKey: string): Promise<any> {
+    try {
+      const response = await this.delete(`issues/${issueKey}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
 }

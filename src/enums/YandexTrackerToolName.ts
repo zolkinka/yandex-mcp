@@ -24,4 +24,6 @@ export enum YandexTrackerToolName {
   linkIssue = "linkIssueTool",
   getLinks = "getLinksTool",
   deleteLink = "deleteLinkTool",
+  // Инструмент для удаления задачи
+  deleteIssue = "deleteIssueTool",
 }

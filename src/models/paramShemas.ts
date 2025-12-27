@@ -50,6 +50,11 @@ export const getCommentsParamsSchema = z.object({
   perPage: z.number().int().positive().default(50).describe("Количество комментариев"),
 });
 
+// схема для удаления задачи
+export const deleteIssueParamsSchema = z.object({
+  issueKey: z.string().describe("Ключ задачи для удаления (например: TEST-123)"),
+});
+
 // схема для перехода в статус
 export const transitionIssueParamsSchema = z.object({
   issueKey: z.string().describe("Ключ задачи"),
