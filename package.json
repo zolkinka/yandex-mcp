@@ -1,12 +1,15 @@
 {
   "name": "yandex-tracker-mcp-server",
   "version": "1.0.0",
-  "description": "MCP сервер для работы с Яндекс.Трекерр",
+  "description": "MCP сервер для работы с Яндекс.Трекером",
   "main": "index.js",
   "scripts": {
     "debug": "npx @modelcontextprotocol/inspector node dist/index.js",
     "compile": "npx tsc",
     "run": "node dist/index.js",
+    "start:http": "node dist/httpServer.js",
+    "start:https": "node dist/httpServer.js",
+    "dev:http": "npx ts-node src/httpServer.ts",
     "test:credentials": "npx ts-node src/tests/credentials.test.ts"
   },
   "repository": {
