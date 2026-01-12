@@ -6,4 +6,8 @@ export enum YandexWikiToolName {
   updateWikiPage = "updateWikiPageTool",
   deleteWikiPage = "deleteWikiPageTool",
   appendWikiContent = "appendWikiContentTool",
+  // Инструменты для работы с файлами в Wiki
+  uploadWikiFile = "uploadWikiFileTool",
+  getWikiFiles = "getWikiFilesTool",
+  deleteWikiFile = "deleteWikiFileTool",
 }

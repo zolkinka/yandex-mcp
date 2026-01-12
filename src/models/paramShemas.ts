@@ -158,3 +158,21 @@ export const getQueuesParamsSchema = z.object({
               workflows — жизненные циклы.
             `).optional()
 });
+
+// схема для прикрепления файла к задаче
+export const attachFileToIssueParamsSchema = z.object({
+  issueKey: z.string().describe("Ключ задачи (например: TEST-123)"),
+  fileContent: z.string().describe("Содержимое файла в формате base64 или Buffer"),
+  fileName: z.string().describe("Имя файла (например: image.jpg)"),
+});
+
+// схема для получения списка файлов задачи
+export const getIssueAttachmentsParamsSchema = z.object({
+  issueKey: z.string().describe("Ключ задачи"),
+});
+
+// схема для удаления файла из задачи
+export const deleteIssueAttachmentParamsSchema = z.object({
+  issueKey: z.string().describe("Ключ задачи"),
+  attachmentId: z.string().describe("ID вложения (получить через getAttachments)"),
+});

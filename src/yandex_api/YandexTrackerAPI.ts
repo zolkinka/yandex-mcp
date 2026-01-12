@@ -18,6 +18,8 @@ import {
   statusSchema,
 } from "../models/baseSchemas";
 import { response } from "express";
+import FormData from "form-data";
+import axios from "axios";
 
 // данный класс реализует паттерн singelton для доступа к API Yandex Tracker
 export class YandexTrackerAPI {
@@ -608,6 +610,101 @@ export class YandexTrackerAPI {
   async deleteIssue(issueKey: string): Promise<any> {
     try {
       const response = await this.delete(`issues/${issueKey}`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Прикрепить файл к задаче
+   * API: POST /v3/issues/<issue_key>/attachments/
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @param {Buffer | string} fileContent - Содержимое файла (Buffer или base64 строка)
+   * @param {string} fileName - Имя файла
+   * @return {*}  {Promise<any>} - Информация о прикрепленном файле
+   * @memberof YandexTrackerAPI
+   */
+  async attachFile(
+    issueKey: string,
+    fileContent: Buffer | string,
+    fileName: string
+  ): Promise<any> {
+    try {
+      const formData = new FormData();
+      
+      // Конвертируем base64 в Buffer если нужно
+      let buffer: Buffer;
+      if (typeof fileContent === 'string') {
+        // Убираем префикс data:image/... если он есть
+        const base64Data = fileContent.replace(/^data:image\/\w+;base64,/, '');
+        buffer = Buffer.from(base64Data, 'base64');
+      } else {
+        buffer = fileContent;
+      }
+      
+      formData.append('file', buffer, fileName);
+
+      // Формируем заголовки
+      const orgId = config.YANDEX_TRACKER_ORG_ID;
+      const cloudOrgId = config.YANDEX_TRACKER_CLOUD_ORG_ID;
+      
+      const headers: Record<string, string> = {
+        'Authorization': `OAuth ${config.YANDEX_TRACKER_TOKEN}`,
+        ...formData.getHeaders(),
+      };
+
+      if (orgId) {
+        headers['X-Org-Id'] = orgId;
+      } else if (cloudOrgId) {
+        headers['X-Cloud-Org-Id'] = cloudOrgId;
+      }
+
+      const url = `${config.YANDEX_TRACKER_BASE_URL}/v3/issues/${issueKey}/attachments/`;
+      
+      const response = await axios.post(url, formData, {
+        headers,
+        timeout: config.REQUEST_TIMEOUT,
+      });
+
+      logger.info({ issueKey, fileName }, "File attached to issue");
+      return response.data;
+    } catch (error: any) {
+      logger.error({ issueKey, fileName, error: error.response?.data || error.message }, "Failed to attach file");
+      throw error;
+    }
+  }
+
+  /**
+   * Получить список прикрепленных файлов задачи
+   * API: GET /v3/issues/<issue_key>/attachments
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @return {*}  {Promise<any[]>} - Список прикрепленных файлов
+   * @memberof YandexTrackerAPI
+   */
+  async getAttachments(issueKey: string): Promise<any[]> {
+    try {
+      const response = await this.get(`issues/${issueKey}/attachments`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Удалить прикрепленный файл
+   * API: DELETE /v3/issues/<issue_key>/attachments/<attachment_id>
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @param {string} attachmentId - ID вложения
+   * @return {*}  {Promise<any>} - Результат удаления
+   * @memberof YandexTrackerAPI
+   */
+  async deleteAttachment(issueKey: string, attachmentId: string): Promise<any> {
+    try {
+      const response = await this.delete(`issues/${issueKey}/attachments/${attachmentId}`);
       return response;
     } catch (error) {
       throw error;

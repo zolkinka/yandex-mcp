@@ -40,3 +40,21 @@ export const appendWikiContentParamsSchema = z.object({
   pageId: z.number().int().positive().describe("ID страницы"),
   content: z.string().describe("Контент для добавления в конец страницы"),
 });
+
+// Схема для загрузки файла на Wiki страницу
+export const uploadWikiFileParamsSchema = z.object({
+  pageId: z.number().int().positive().describe("ID страницы"),
+  fileContent: z.string().describe("Содержимое файла в формате base64 или Buffer"),
+  fileName: z.string().describe("Имя файла (например: document.pdf, image.png)"),
+});
+
+// Схема для получения списка файлов Wiki страницы
+export const getWikiFilesParamsSchema = z.object({
+  pageId: z.number().int().positive().describe("ID страницы"),
+});
+
+// Схема для удаления файла с Wiki страницы
+export const deleteWikiFileParamsSchema = z.object({
+  pageId: z.number().int().positive().describe("ID страницы"),
+  fileId: z.string().describe("ID файла (получить через getFiles)"),
+});

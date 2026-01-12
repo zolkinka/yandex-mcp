@@ -21,7 +21,10 @@ import {
   linkIssueParamsSchema,
   getLinksParamsSchema,
   deleteLinkParamsSchema,
-  deleteIssueParamsSchema
+  deleteIssueParamsSchema,
+  attachFileToIssueParamsSchema,
+  getIssueAttachmentsParamsSchema,
+  deleteIssueAttachmentParamsSchema
 } from "../models/paramShemas";
 import {
   getWikiPageParamsSchema,
@@ -29,7 +32,10 @@ import {
   createWikiPageParamsSchema,
   updateWikiPageParamsSchema,
   deleteWikiPageParamsSchema,
-  appendWikiContentParamsSchema
+  appendWikiContentParamsSchema,
+  uploadWikiFileParamsSchema,
+  getWikiFilesParamsSchema,
+  deleteWikiFileParamsSchema
 } from "../models/wikiParamSchemas";
 import { Issue } from "../models/issue";
 import { SimpleUser, User } from "../models/user";
@@ -303,6 +309,7 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       deleteLinkParamsSchema.shape,
       this.deleteLinkToolCallback.bind(this)
     );
+    
     // deleteIssueTool - удаление задачи
     this.mcpServer.tool(
       YandexTrackerToolName.deleteIssue,
@@ -310,6 +317,31 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       deleteIssueParamsSchema.shape,
       this.deleteIssueToolCallback.bind(this)
     );
+
+    // attachFileToIssueTool - прикрепление файла к задаче
+    this.mcpServer.tool(
+      YandexTrackerToolName.attachFileToIssue,
+      "Прикрепляет файл (например, изображение) к задаче в Яндекс.Трекере. Файл должен быть передан в формате base64.",
+      attachFileToIssueParamsSchema.shape,
+      this.attachFileToIssueToolCallback.bind(this)
+    );
+
+    // getIssueAttachmentsTool - получение списка вложений задачи
+    this.mcpServer.tool(
+      YandexTrackerToolName.getIssueAttachments,
+      "Получает список всех прикрепленных файлов к задаче.",
+      getIssueAttachmentsParamsSchema.shape,
+      this.getIssueAttachmentsToolCallback.bind(this)
+    );
+
+    // deleteIssueAttachmentTool - удаление вложения
+    this.mcpServer.tool(
+      YandexTrackerToolName.deleteIssueAttachment,
+      "Удаляет прикрепленный файл из задачи. Сначала используйте getIssueAttachments для получения ID вложения.",
+      deleteIssueAttachmentParamsSchema.shape,
+      this.deleteIssueAttachmentToolCallback.bind(this)
+    );
+
     // ==================== ЯНДЕКС ВИКИ ====================
 
     // getWikiPageTool - получение страницы по slug
@@ -358,6 +390,30 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       "Добавляет контент в конец существующей страницы Яндекс Вики.",
       appendWikiContentParamsSchema.shape,
       this.appendWikiContentToolCallback.bind(this)
+    );
+
+    // uploadWikiFileTool - загрузка файла на Wiki страницу
+    this.mcpServer.tool(
+      YandexWikiToolName.uploadWikiFile,
+      "Загружает файл (например, изображение или документ) на страницу Яндекс Вики. Файл должен быть передан в формате base64.",
+      uploadWikiFileParamsSchema.shape,
+      this.uploadWikiFileToolCallback.bind(this)
+    );
+
+    // getWikiFilesTool - получение списка файлов Wiki страницы
+    this.mcpServer.tool(
+      YandexWikiToolName.getWikiFiles,
+      "Получает список всех файлов, прикрепленных к странице Яндекс Вики.",
+      getWikiFilesParamsSchema.shape,
+      this.getWikiFilesToolCallback.bind(this)
+    );
+
+    // deleteWikiFileTool - удаление файла с Wiki страницы
+    this.mcpServer.tool(
+      YandexWikiToolName.deleteWikiFile,
+      "Удаляет файл со страницы Яндекс Вики. Сначала используйте getWikiFiles для получения ID файла.",
+      deleteWikiFileParamsSchema.shape,
+      this.deleteWikiFileToolCallback.bind(this)
     );
   }
 
@@ -838,6 +894,54 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
     }
   }
 
+  // callback для прикрепления файла к задаче
+  private async attachFileToIssueToolCallback(
+    args: z.infer<typeof attachFileToIssueParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexTrackerAPI.getInstance().attachFile(
+        args.issueKey,
+        args.fileContent,
+        args.fileName
+      );
+      return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для получения списка вложений задачи
+  private async getIssueAttachmentsToolCallback(
+    args: z.infer<typeof getIssueAttachmentsParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const attachments = await YandexTrackerAPI.getInstance().getAttachments(
+        args.issueKey
+      );
+      return super.receiveCallToolResult<any[]>(attachments);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для удаления вложения из задачи
+  private async deleteIssueAttachmentToolCallback(
+    args: z.infer<typeof deleteIssueAttachmentParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexTrackerAPI.getInstance().deleteAttachment(
+        args.issueKey,
+        args.attachmentId
+      );
+      return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
   // ==================== ЯНДЕКС ВИКИ CALLBACKS ====================
 
   // callback для получения страницы по slug
@@ -930,6 +1034,52 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
         args.content
       );
       return super.receiveCallToolResult<any>(page);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для загрузки файла на Wiki страницу
+  private async uploadWikiFileToolCallback(
+    args: z.infer<typeof uploadWikiFileParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexWikiAPI.getInstance().uploadFile(
+        args.pageId,
+        args.fileContent,
+        args.fileName
+      );
+      return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для получения списка файлов Wiki страницы
+  private async getWikiFilesToolCallback(
+    args: z.infer<typeof getWikiFilesParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const files = await YandexWikiAPI.getInstance().getFiles(args.pageId);
+      return super.receiveCallToolResult<any[]>(files);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для удаления файла с Wiki страницы
+  private async deleteWikiFileToolCallback(
+    args: z.infer<typeof deleteWikiFileParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const result = await YandexWikiAPI.getInstance().deleteFile(
+        args.pageId,
+        args.fileId
+      );
+      return super.receiveCallToolResult<any>(result);
     } catch (error) {
       throw error;
     }

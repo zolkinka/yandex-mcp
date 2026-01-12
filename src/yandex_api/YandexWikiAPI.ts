@@ -1,6 +1,7 @@
 import { logger } from "../settings/logger";
 import { config } from "../settings/config";
 import axios, { AxiosInstance, AxiosResponse } from "axios";
+import FormData from "form-data";
 
 /**
  * Типы страниц Яндекс Вики
@@ -252,6 +253,99 @@ export class YandexWikiAPI {
   async appendContent(pageId: number, content: string): Promise<WikiPage> {
     try {
       const response = await this.post(`/pages/${pageId}/append`, { content });
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Загрузить файл на Wiki страницу
+   * API: POST /v1/pages/<pageId>/files
+   * 
+   * @param {number} pageId - ID страницы
+   * @param {Buffer | string} fileContent - Содержимое файла (Buffer или base64 строка)
+   * @param {string} fileName - Имя файла
+   * @return {*} {Promise<any>} - Информация о загруженном файле
+   */
+  async uploadFile(
+    pageId: number,
+    fileContent: Buffer | string,
+    fileName: string
+  ): Promise<any> {
+    try {
+      const formData = new FormData();
+      
+      // Конвертируем base64 в Buffer если нужно
+      let buffer: Buffer;
+      if (typeof fileContent === 'string') {
+        // Убираем префикс data:image/... если он есть
+        const base64Data = fileContent.replace(/^data:image\/\w+;base64,/, '');
+        buffer = Buffer.from(base64Data, 'base64');
+      } else {
+        buffer = fileContent;
+      }
+      
+      formData.append('file', buffer, fileName);
+
+      const orgId = config.YANDEX_TRACKER_ORG_ID;
+      const cloudOrgId = config.YANDEX_TRACKER_CLOUD_ORG_ID;
+
+      const headers: Record<string, string> = {
+        "Authorization": `OAuth ${config.YANDEX_TRACKER_TOKEN}`,
+        ...formData.getHeaders(),
+      };
+
+      if (orgId) {
+        headers["X-Org-Id"] = orgId;
+      } else if (cloudOrgId) {
+        headers["X-Cloud-Org-Id"] = cloudOrgId;
+      }
+
+      const response: AxiosResponse = await axios.post(
+        `https://api.wiki.yandex.net/v1/pages/${pageId}/files`,
+        formData,
+        {
+          headers,
+          timeout: config.REQUEST_TIMEOUT,
+        }
+      );
+      
+      logger.info({ pageId, fileName }, "Wiki file uploaded");
+      return response.data;
+    } catch (error: any) {
+      logger.error({ pageId, fileName, error: error.response?.data || error.message }, "Wiki file upload error");
+      throw error;
+    }
+  }
+
+  /**
+   * Получить список файлов на странице
+   * API: GET /v1/pages/<pageId>/files
+   *
+   * @param {number} pageId - ID страницы
+   * @return {*} {Promise<any[]>} - Список файлов
+   */
+  async getFiles(pageId: number): Promise<any[]> {
+    try {
+      const response = await this.get(`/pages/${pageId}/files`);
+      return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Удалить файл со страницы
+   * API: DELETE /v1/pages/<pageId>/files/<fileId>
+   *
+   * @param {number} pageId - ID страницы
+   * @param {string} fileId - ID файла
+   * @return {*} {Promise<any>} - Результат удаления
+   */
+  async deleteFile(pageId: number, fileId: string): Promise<any> {
+    try {
+      const response = await this.delete(`/pages/${pageId}/files/${fileId}`);
       return response;
     } catch (error) {
       throw error;
