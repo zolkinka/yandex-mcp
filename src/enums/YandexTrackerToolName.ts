@@ -30,4 +30,6 @@ export enum YandexTrackerToolName {
   attachFileToIssue = "attachFileToIssueTool",
   getIssueAttachments = "getIssueAttachmentsTool",
   deleteIssueAttachment = "deleteIssueAttachmentTool",
+  // Инструмент для переноса задачи в другую очередь
+  moveIssue = "moveIssueTool",
 }

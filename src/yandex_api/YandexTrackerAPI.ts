@@ -399,6 +399,7 @@ export class YandexTrackerAPI {
       priority?: string;
       assignee?: string | null;
       parent?: string;
+      queue?: string;
       followers?: { add?: string[]; remove?: string[] };
       tags?: { add?: string[]; remove?: string[] } | string[];
       sprint?: { id: string }[];
@@ -413,6 +414,7 @@ export class YandexTrackerAPI {
       if (params.priority !== undefined) body.priority = params.priority;
       if (params.assignee !== undefined) body.assignee = params.assignee;
       if (params.parent !== undefined) body.parent = { key: params.parent };
+      if (params.queue !== undefined) body.queue = params.queue;
       if (params.followers !== undefined) body.followers = params.followers;
       if (params.tags !== undefined) body.tags = params.tags;
       if (params.sprint !== undefined) body.sprint = params.sprint;
@@ -611,6 +613,35 @@ export class YandexTrackerAPI {
     try {
       const response = await this.delete(`issues/${issueKey}`);
       return response;
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  /**
+   * Перенести задачу в другую очередь
+   * API: POST /v3/issues/<issue_key>/_move?queue=<queue_key>
+   *
+   * @param {string} issueKey - Ключ задачи
+   * @param {string} queue - Ключ целевой очереди
+   * @param {boolean} [moveAllFields] - Перенести компоненты, версии и проекты
+   * @param {boolean} [initialStatus] - Сбросить статус в начальное значение
+   * @return {*}  {Promise<Issue>} - Перенесенная задача
+   * @memberof YandexTrackerAPI
+   */
+  async moveIssue(
+    issueKey: string,
+    queue: string,
+    moveAllFields?: boolean,
+    initialStatus?: boolean
+  ): Promise<Issue> {
+    try {
+      let url = `issues/${issueKey}/_move?queue=${queue}`;
+      if (moveAllFields !== undefined) url += `&moveAllFields=${moveAllFields}`;
+      if (initialStatus !== undefined) url += `&initialStatus=${initialStatus}`;
+
+      const response = await this.post(url);
+      return issueSchema.parse(response);
     } catch (error) {
       throw error;
     }

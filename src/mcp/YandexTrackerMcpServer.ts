@@ -24,7 +24,8 @@ import {
   deleteIssueParamsSchema,
   attachFileToIssueParamsSchema,
   getIssueAttachmentsParamsSchema,
-  deleteIssueAttachmentParamsSchema
+  deleteIssueAttachmentParamsSchema,
+  moveIssueParamsSchema
 } from "../models/paramShemas";
 import {
   getWikiPageParamsSchema,
@@ -249,7 +250,7 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
     // updateIssueTool - редактирование задачи
     this.mcpServer.tool(
       YandexTrackerToolName.updateIssue,
-      "Редактирует существующую задачу в Yandex Tracker. Можно изменить название, описание, приоритет, исполнителя, теги и т.д.",
+      "Редактирует существующую задачу в Yandex Tracker: название, описание, приоритет, исполнитель, очередь, теги и т.д.",
       updateIssueParamsSchema.shape,
       this.updateIssueToolCallback.bind(this)
     );
@@ -316,6 +317,14 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       "Удаляет задачу из Яндекс.Трекера. ВНИМАНИЕ: Операция необратима! Задача будет удалена безвозвратно.",
       deleteIssueParamsSchema.shape,
       this.deleteIssueToolCallback.bind(this)
+    );
+
+    // moveIssueTool - перенос задачи в другую очередь
+    this.mcpServer.tool(
+      YandexTrackerToolName.moveIssue,
+      "Переносит задачу в другую очередь. Можно сохранить компоненты/версии/проекты или сбросить статус в начальное значение.",
+      moveIssueParamsSchema.shape,
+      this.moveIssueToolCallback.bind(this)
     );
 
     // attachFileToIssueTool - прикрепление файла к задаче
@@ -741,6 +750,7 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       if (args.priority !== undefined) updateParams.priority = args.priority;
       if (args.assignee !== undefined) updateParams.assignee = args.assignee;
       if (args.parent !== undefined) updateParams.parent = args.parent;
+      if (args.queue !== undefined) updateParams.queue = args.queue;
       
       // Обработка тегов
       if (args.addTags || args.removeTags) {
@@ -889,6 +899,24 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
         args.issueKey
       );
       return super.receiveCallToolResult<any>(result);
+    } catch (error) {
+      throw error;
+    }
+  }
+
+  // callback для переноса задачи в другую очередь
+  private async moveIssueToolCallback(
+    args: z.infer<typeof moveIssueParamsSchema>,
+    extra: RequestHandlerExtra<ServerRequest, ServerNotification>
+  ): Promise<CallToolResult> {
+    try {
+      const issue = await YandexTrackerAPI.getInstance().moveIssue(
+        args.issueKey,
+        args.queue,
+        args.moveAllFields,
+        args.initialStatus
+      );
+      return super.receiveCallToolResult<Issue>(issue);
     } catch (error) {
       throw error;
     }

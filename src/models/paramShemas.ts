@@ -31,6 +31,7 @@ export const updateIssueParamsSchema = z.object({
   priority: z.string().optional().describe("Новый приоритет"),
   assignee: z.string().nullable().optional().describe("Новый исполнитель (null для снятия)"),
   parent: z.string().optional().describe("Новая родительская задача"),
+  queue: z.string().optional().describe("Новая очередь (ключ очереди, например: TEST)"),
   addTags: z.array(z.string()).optional().describe("Теги для добавления"),
   removeTags: z.array(z.string()).optional().describe("Теги для удаления"),
   addFollowers: z.array(z.string()).optional().describe("Наблюдатели для добавления"),
@@ -175,4 +176,12 @@ export const getIssueAttachmentsParamsSchema = z.object({
 export const deleteIssueAttachmentParamsSchema = z.object({
   issueKey: z.string().describe("Ключ задачи"),
   attachmentId: z.string().describe("ID вложения (получить через getAttachments)"),
+});
+
+// схема для переноса задачи в другую очередь
+export const moveIssueParamsSchema = z.object({
+  issueKey: z.string().describe("Ключ задачи для переноса (например: TEST-123)"),
+  queue: z.string().describe("Ключ целевой очереди (например: NEW)"),
+  moveAllFields: z.boolean().optional().describe("Перенести компоненты, версии и проекты (если есть аналогичные в новой очереди)"),
+  initialStatus: z.boolean().optional().describe("Сбросить статус задачи в начальное значение новой очереди"),
 });
