@@ -242,7 +242,7 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
     // createIssueTool - создание новой задачи
     this.mcpServer.tool(
       YandexTrackerToolName.createIssue,
-      "Создает новую задачу в Yandex Tracker. Обязательные поля: queue (ключ очереди) и summary (название).",
+      "Создает новую задачу в Yandex Tracker. Обязательные поля: queue (ключ очереди) и summary (название). Поддерживается установка story points (storyPoints).",
       createIssueParamsSchema.shape,
       this.createIssueToolCallback.bind(this)
     );
@@ -250,7 +250,7 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
     // updateIssueTool - редактирование задачи
     this.mcpServer.tool(
       YandexTrackerToolName.updateIssue,
-      "Редактирует существующую задачу в Yandex Tracker: название, описание, приоритет, исполнитель, очередь, теги и т.д.",
+      "Редактирует существующую задачу в Yandex Tracker: название, описание, приоритет, исполнитель, очередь, теги, story points (storyPoints) и т.д.",
       updateIssueParamsSchema.shape,
       this.updateIssueToolCallback.bind(this)
     );
@@ -729,6 +729,7 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
         followers: args.followers,
         tags: args.tags,
         sprint: args.sprint,
+        storyPoints: args.storyPoints,
       });
       return super.receiveCallToolResult<Issue>(issue);
     } catch (error) {
@@ -751,6 +752,7 @@ export class YandexTrackerMcpServer extends YandexMcpServer {
       if (args.assignee !== undefined) updateParams.assignee = args.assignee;
       if (args.parent !== undefined) updateParams.parent = args.parent;
       if (args.queue !== undefined) updateParams.queue = args.queue;
+      if (args.storyPoints !== undefined) updateParams.storyPoints = args.storyPoints;
       
       // Обработка тегов
       if (args.addTags || args.removeTags) {

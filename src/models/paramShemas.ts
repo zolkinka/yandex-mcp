@@ -20,6 +20,7 @@ export const createIssueParamsSchema = z.object({
   followers: z.array(z.string()).optional().describe("Массив логинов наблюдателей"),
   tags: z.array(z.string()).optional().describe("Массив тегов"),
   sprint: z.array(z.string()).optional().describe("Массив ID спринтов"),
+  storyPoints: z.number().optional().describe("Story Points (сторипоинты) задачи"),
 });
 
 // схема для редактирования задачи
@@ -36,6 +37,7 @@ export const updateIssueParamsSchema = z.object({
   removeTags: z.array(z.string()).optional().describe("Теги для удаления"),
   addFollowers: z.array(z.string()).optional().describe("Наблюдатели для добавления"),
   removeFollowers: z.array(z.string()).optional().describe("Наблюдатели для удаления"),
+  storyPoints: z.number().nullable().optional().describe("Story Points (сторипоинты) задачи (null для снятия)"),
 });
 
 // схема для добавления комментария

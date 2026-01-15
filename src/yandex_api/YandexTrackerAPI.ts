@@ -20,6 +20,7 @@ import {
 import { response } from "express";
 import FormData from "form-data";
 import axios from "axios";
+import { createFormattedError } from "../utils/errorFormatter";
 
 // данный класс реализует паттерн singelton для доступа к API Yandex Tracker
 export class YandexTrackerAPI {
@@ -69,7 +70,7 @@ export class YandexTrackerAPI {
       return response;
     } catch (error) {
       logger.error({ path, params, error }, "GET");
-      throw error;
+      throw createFormattedError(error, `GET ${path}`);
     }
   }
 
@@ -80,7 +81,7 @@ export class YandexTrackerAPI {
       return response;
     } catch (error) {
       logger.error({ path, data, error }, "POST");
-      throw error;
+      throw createFormattedError(error, `POST ${path}`);
     }
   }
 
@@ -91,7 +92,7 @@ export class YandexTrackerAPI {
       return response;
     } catch (error) {
       logger.error({ path, data, error }, "PATCH");
-      throw error;
+      throw createFormattedError(error, `PATCH ${path}`);
     }
   }
 
@@ -132,7 +133,7 @@ export class YandexTrackerAPI {
       const response = await this.get("myself");
       return userSchema.parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, "getMyself");
     }
   }
 
@@ -152,7 +153,7 @@ export class YandexTrackerAPI {
       const response = await this.get("queues", params);
       return queueSchema.array().parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, "getQueues");
     }
   }
 
@@ -168,7 +169,7 @@ export class YandexTrackerAPI {
       const response = await this.get(`queues/${queue_key}`);
       return queueSchema.parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getQueue: ${queue_key}`);
     }
   }
 
@@ -182,7 +183,7 @@ export class YandexTrackerAPI {
       const response = await this.get(`issues/${issueKey}`);
       return issueSchema.parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getIssue: ${issueKey}`);
     }
   }
 
@@ -204,7 +205,7 @@ export class YandexTrackerAPI {
       });
       return issueSchema.array().parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, "searchIssueSimple");
     }
   }
 
@@ -244,7 +245,7 @@ export class YandexTrackerAPI {
       );
       return issueSchema.array().parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, "searchIssueByFilter");
     }
   }
 
@@ -279,7 +280,7 @@ export class YandexTrackerAPI {
       }
       return issueSchema.array().parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, "searchIssueByQuery");
     }
   }
 
@@ -358,6 +359,7 @@ export class YandexTrackerAPI {
     followers?: string[];
     tags?: string[];
     sprint?: string[];
+    storyPoints?: number;
   }): Promise<Issue> {
     try {
       const body: Record<string, any> = {
@@ -373,11 +375,12 @@ export class YandexTrackerAPI {
       if (params.followers) body.followers = params.followers;
       if (params.tags) body.tags = params.tags;
       if (params.sprint) body.sprint = params.sprint.map(id => ({ id }));
+      if (params.storyPoints !== undefined) body.storyPoints = params.storyPoints;
 
       const response = await this.post("issues", body);
       return issueSchema.parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, "createIssue");
     }
   }
 
@@ -403,6 +406,7 @@ export class YandexTrackerAPI {
       followers?: { add?: string[]; remove?: string[] };
       tags?: { add?: string[]; remove?: string[] } | string[];
       sprint?: { id: string }[];
+      storyPoints?: number | null;
     }
   ): Promise<Issue> {
     try {
@@ -418,11 +422,12 @@ export class YandexTrackerAPI {
       if (params.followers !== undefined) body.followers = params.followers;
       if (params.tags !== undefined) body.tags = params.tags;
       if (params.sprint !== undefined) body.sprint = params.sprint;
+      if (params.storyPoints !== undefined) body.storyPoints = params.storyPoints;
 
       const response = await this.patch(`issues/${issueKey}`, body);
       return issueSchema.parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `updateIssue: ${issueKey}`);
     }
   }
 
@@ -439,7 +444,7 @@ export class YandexTrackerAPI {
       const response = await this.get(`issues/${issueKey}/transitions`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getTransitions: ${issueKey}`);
     }
   }
 
@@ -468,7 +473,7 @@ export class YandexTrackerAPI {
       );
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `transitionIssue: ${issueKey}`);
     }
   }
 
@@ -494,7 +499,7 @@ export class YandexTrackerAPI {
       const response = await this.post(`issues/${issueKey}/comments`, body);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `addComment: ${issueKey}`);
     }
   }
 
@@ -514,7 +519,7 @@ export class YandexTrackerAPI {
       });
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getComments: ${issueKey}`);
     }
   }
 
@@ -528,7 +533,7 @@ export class YandexTrackerAPI {
       return response;
     } catch (error) {
       logger.error({ path, error }, "DELETE");
-      throw error;
+      throw createFormattedError(error, `DELETE ${path}`);
     }
   }
 
@@ -562,7 +567,7 @@ export class YandexTrackerAPI {
       const response = await this.post(`issues/${issueKey}/links`, body);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `linkIssue: ${issueKey}`);
     }
   }
 
@@ -579,7 +584,7 @@ export class YandexTrackerAPI {
       const response = await this.get(`issues/${issueKey}/links`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getLinks: ${issueKey}`);
     }
   }
 
@@ -597,7 +602,7 @@ export class YandexTrackerAPI {
       const response = await this.delete(`issues/${issueKey}/links/${linkId}`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `deleteLink: ${issueKey}`);
     }
   }
 
@@ -614,7 +619,7 @@ export class YandexTrackerAPI {
       const response = await this.delete(`issues/${issueKey}`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `deleteIssue: ${issueKey}`);
     }
   }
 
@@ -637,13 +642,13 @@ export class YandexTrackerAPI {
   ): Promise<Issue> {
     try {
       let url = `issues/${issueKey}/_move?queue=${queue}`;
-      if (moveAllFields !== undefined) url += `&moveAllFields=${moveAllFields}`;
-      if (initialStatus !== undefined) url += `&initialStatus=${initialStatus}`;
+      if (moveAllFields !== undefined) url += `&MoveAllFields=${moveAllFields}`;
+      if (initialStatus !== undefined) url += `&InitialStatus=${initialStatus}`;
 
-      const response = await this.post(url);
+      const response = await this.post(url, {});
       return issueSchema.parse(response);
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `moveIssue: ${issueKey}`);
     }
   }
 
@@ -703,7 +708,7 @@ export class YandexTrackerAPI {
       return response.data;
     } catch (error: any) {
       logger.error({ issueKey, fileName, error: error.response?.data || error.message }, "Failed to attach file");
-      throw error;
+      throw createFormattedError(error, `attachFile: ${issueKey}`);
     }
   }
 
@@ -720,7 +725,7 @@ export class YandexTrackerAPI {
       const response = await this.get(`issues/${issueKey}/attachments`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getAttachments: ${issueKey}`);
     }
   }
 
@@ -738,7 +743,7 @@ export class YandexTrackerAPI {
       const response = await this.delete(`issues/${issueKey}/attachments/${attachmentId}`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `deleteAttachment: ${issueKey}`);
     }
   }
 }

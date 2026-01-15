@@ -2,6 +2,7 @@ import { logger } from "../settings/logger";
 import { config } from "../settings/config";
 import axios, { AxiosInstance, AxiosResponse } from "axios";
 import FormData from "form-data";
+import { createFormattedError } from "../utils/errorFormatter";
 
 /**
  * Типы страниц Яндекс Вики
@@ -93,7 +94,7 @@ export class YandexWikiAPI {
       return response.data;
     } catch (error: any) {
       logger.error({ path, params, error: error.response?.data || error.message }, "Wiki GET Error");
-      throw error;
+      throw createFormattedError(error, `Wiki GET ${path}`);
     }
   }
 
@@ -107,7 +108,7 @@ export class YandexWikiAPI {
       return response.data;
     } catch (error: any) {
       logger.error({ path, data, error: error.response?.data || error.message }, "Wiki POST Error");
-      throw error;
+      throw createFormattedError(error, `Wiki POST ${path}`);
     }
   }
 
@@ -121,7 +122,7 @@ export class YandexWikiAPI {
       return response.data;
     } catch (error: any) {
       logger.error({ path, error: error.response?.data || error.message }, "Wiki DELETE Error");
-      throw error;
+      throw createFormattedError(error, `Wiki DELETE ${path}`);
     }
   }
 
@@ -141,7 +142,7 @@ export class YandexWikiAPI {
       const response = await this.get("/pages", params);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getPage: ${slug}`);
     }
   }
 
@@ -161,7 +162,7 @@ export class YandexWikiAPI {
       const response = await this.get(`/pages/${pageId}`, params);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getPageById: ${pageId}`);
     }
   }
 
@@ -193,7 +194,7 @@ export class YandexWikiAPI {
       const response = await this.post("/pages", body);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `createPage: ${params.slug}`);
     }
   }
 
@@ -222,7 +223,7 @@ export class YandexWikiAPI {
       const response = await this.post(`/pages/${pageId}`, body);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `updatePage: ${pageId}`);
     }
   }
 
@@ -238,7 +239,7 @@ export class YandexWikiAPI {
       const response = await this.delete(`/pages/${pageId}`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `deletePage: ${pageId}`);
     }
   }
 
@@ -255,7 +256,7 @@ export class YandexWikiAPI {
       const response = await this.post(`/pages/${pageId}/append`, { content });
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `appendContent: ${pageId}`);
     }
   }
 
@@ -315,7 +316,7 @@ export class YandexWikiAPI {
       return response.data;
     } catch (error: any) {
       logger.error({ pageId, fileName, error: error.response?.data || error.message }, "Wiki file upload error");
-      throw error;
+      throw createFormattedError(error, `uploadFile: ${pageId}`);
     }
   }
 
@@ -331,7 +332,7 @@ export class YandexWikiAPI {
       const response = await this.get(`/pages/${pageId}/files`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `getFiles: ${pageId}`);
     }
   }
 
@@ -348,7 +349,7 @@ export class YandexWikiAPI {
       const response = await this.delete(`/pages/${pageId}/files/${fileId}`);
       return response;
     } catch (error) {
-      throw error;
+      throw createFormattedError(error, `deleteFile: ${pageId}`);
     }
   }
 }

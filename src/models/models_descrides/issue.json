@@ -118,5 +118,10 @@
     "name": "favorite",
     "description": "Признак избранной задачи: true — пользователь добавил задачу в избранное; false — задача не добавлена в избранное.",
     "type": "boolean"
+  },
+  {
+    "name": "storyPoints",
+    "description": "Story Points (сторипоинты) задачи.",
+    "type": "number"
   }
 ]
