@@ -5,7 +5,7 @@
   "main": "index.js",
   "scripts": {
     "debug": "npx @modelcontextprotocol/inspector node dist/index.js",
-    "compile": "npx tsc",
+    "compile": "node --max-old-space-size=4096 ./node_modules/.bin/tsc",
     "run": "node dist/index.js",
     "start:http": "node dist/httpServer.js",
     "start:https": "node dist/httpServer.js",
